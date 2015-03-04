@@ -42,8 +42,8 @@ type Options struct {
 // RedisStore represents a redis session store implementation.
 type NodbStore struct {
 	Options
-	Logger tango.Logger
-	db     *nodb.DB
+	tango.Logger
+	db *nodb.DB
 }
 
 func preOptions(opts []Options) Options {
@@ -171,7 +171,7 @@ func (s *NodbStore) Get(id session.Id, key string) interface{} {
 
 	value, err := s.deserialize(val)
 	if err != nil {
-		s.Logger.Errorf("redis HGET failed: %s", err)
+		s.Logger.Errorf("nodb HGET failed: %s", err)
 		return nil
 	}
 	return value
@@ -202,7 +202,9 @@ func (s *NodbStore) SetMaxAge(maxAge time.Duration) {
 }
 
 func (s *NodbStore) SetIdMaxAge(id session.Id, maxAge time.Duration) {
-
+	if s.Exist(id) {
+		s.db.Expire([]byte(id), int64(s.MaxAge))
+	}
 }
 
 func (s *NodbStore) Run() error {
