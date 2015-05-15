@@ -29,12 +29,13 @@ func (a *SessionAction) Get() string {
 
 func main() {
     o := tango.Classic()
+    store, _ := nodbstore.New(nodbstore.Options{
+        Path:    "./nodbstore",
+        DbIndex: 0,
+        MaxAge:  30 * time.Minute,
+    })
     o.Use(session.New(session.Options{
-        Store: redistore.New(nodbstore.Options{
-                Path:    "./nodbstore",
-                DbIndex: 0,
-                MaxAge:  30 * time.Minute,
-            }),
+        Store: store,
         }))
     o.Get("/", new(SessionAction))
 }
