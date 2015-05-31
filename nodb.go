@@ -26,6 +26,7 @@ import (
 	"github.com/lunny/log"
 	"github.com/lunny/nodb"
 	"github.com/lunny/nodb/config"
+	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/lunny/tango"
 
 	"github.com/tango-contrib/session"
@@ -161,6 +162,11 @@ func (s *NodbStore) Set(id session.Id, key string, val interface{}) error {
 // Get gets value by given key in session.
 func (s *NodbStore) Get(id session.Id, key string) interface{} {
 	val, err := s.db.HGet([]byte(id), []byte(key))
+	// if not exist
+	if err == leveldb.ErrNotFound {
+		return nil
+	}
+
 	if err != nil {
 		s.Logger.Errorf("nodb HGET failed: %s", err)
 		return nil
@@ -169,9 +175,13 @@ func (s *NodbStore) Get(id session.Id, key string) interface{} {
 	// when read data, reset maxage
 	s.db.Expire([]byte(id), int64(s.MaxAge))
 
+	if len(val) == 0 {
+		return nil
+	}
+
 	value, err := s.deserialize(val)
 	if err != nil {
-		s.Logger.Errorf("nodb HGET failed: %s", err)
+		s.Logger.Errorf("nodb HGET failed: %v - %v", err, val)
 		return nil
 	}
 	return value
@@ -193,7 +203,7 @@ func (s *NodbStore) Add(id session.Id) bool {
 }
 
 func (s *NodbStore) Exist(id session.Id) bool {
-	b, _ := s.db.Exists([]byte(id))
+	b, _ := s.db.HLen([]byte(id))
 	return b > 0
 }
 
