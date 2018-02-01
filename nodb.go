@@ -26,8 +26,8 @@ import (
 	"github.com/lunny/log"
 	"github.com/lunny/nodb"
 	"github.com/lunny/nodb/config"
-	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/lunny/tango"
+	"github.com/syndtr/goleveldb/leveldb"
 
 	"github.com/tango-contrib/session"
 )
@@ -199,7 +199,14 @@ func (s *NodbStore) Clear(id session.Id) bool {
 }
 
 func (s *NodbStore) Add(id session.Id) bool {
-	return true
+	key := fmt.Sprintf("%d", time.Now().UnixNano())
+	_, err := s.db.HSet([]byte(id), []byte(key), []byte(""))
+	if err == nil {
+		// when write data, reset maxage
+		_, err = s.db.Expire([]byte(id), int64(s.MaxAge))
+	}
+
+	return err == nil
 }
 
 func (s *NodbStore) Exist(id session.Id) bool {
